@@ -50,6 +50,39 @@ local function divmod(a, b)
     return a / b, a % b
 end
 
+-- Window title used for Notion; override with NOTION_WINDOW_TITLE env variable
+local notion_window_title = os.getenv("NOTION_WINDOW_TITLE") or "Notion"
+
+-- Send a paste command to the active window or the specified window title
+local function paste_clipboard(window_name)
+    local cmd
+    if platform == WINDOWS then
+        if window_name then
+            local ps = string.format(
+                "$n='%s';$ws=New-Object -ComObject WScript.Shell;" ..
+                "$ws.AppActivate($n);Start-Sleep -Milliseconds 100;" ..
+                "$ws.SendKeys('^v')",
+                window_name
+            )
+            cmd = {"powershell", "-Command", ps}
+        else
+            cmd = {"powershell", "-Command", "$ws=New-Object -com wscript.shell; $ws.SendKeys('^v')"}
+        end
+    elseif command_exists("xdotool") then
+        if window_name then
+            cmd = {"xdotool", "search", "--name", window_name, "windowactivate", "--sync", "key", "--clearmodifiers", "ctrl+v"}
+        else
+            cmd = {"xdotool", "key", "--clearmodifiers", "ctrl+v"}
+        end
+    else
+        msg.error("No supported paste command found")
+        return false
+    end
+
+    mp.command_native({ name = "subprocess", args = cmd })
+    return true
+end
+
 -- Get temporary directory for screenshot
 local temp_dir = os.getenv("TEMP") or os.getenv("TMP") or "/tmp"
 
@@ -249,6 +282,49 @@ function copy_info()
     end
 end
 
+-- Take a screenshot and paste it along with info into the active window (e.g. Notion)
+function insert_into_notion()
+    local temp_screenshot = utils.join_path(temp_dir, "mpv_screenshot_" .. os.time() .. ".png")
+    mp.commandv("screenshot-to-file", temp_screenshot, "video")
+
+    mp.add_timeout(0.2, function()
+        local file = io.open(temp_screenshot, "r")
+        if not file then
+            mp.osd_message("Failed to save screenshot", 3)
+            return
+        end
+        file:close()
+
+        if copy_image_to_clipboard(temp_screenshot) then
+            paste_clipboard(notion_window_title)
+        else
+            mp.osd_message("Failed to copy screenshot to clipboard", 3)
+        end
+
+        os.remove(temp_screenshot)
+
+        mp.add_timeout(0.1, function()
+            local filename = mp.get_property("filename")
+            local path = mp.get_property("path")
+            local full_path
+            if platform == WINDOWS then
+                full_path = mp.get_property("working-directory") .. "\\" .. path
+            else
+                full_path = mp.get_property("working-directory") .. "/" .. path
+            end
+            local time_pos = mp.get_property_number("time-pos")
+            local formatted = format_timestamp(time_pos)
+            local info = string.format("Timestamp: %s\nFile: %s\nPath: %s", formatted, filename, full_path)
+            if set_clipboard(info) then
+                paste_clipboard(notion_window_title)
+                mp.osd_message("Inserted screenshot and info", 3)
+            else
+                mp.osd_message("Failed to copy info to clipboard", 3)
+            end
+        end)
+    end)
+end
+
 -- Initialize platform detection
 platform = platform_type()
 if platform == UNIX then
@@ -262,6 +338,7 @@ mp.add_key_binding("Ctrl+p", "copy-full-path", copy_full_path)
 mp.add_key_binding("Ctrl+d", "copy-duration", copy_duration)
 mp.add_key_binding("Ctrl+Shift+t", "copy-info", copy_info)
 mp.add_key_binding("Ctrl+Shift+f", "screenshot-to-clipboard", take_screenshot_to_clipboard)
+mp.add_key_binding("Ctrl+Shift+n", "insert-into-notion", insert_into_notion)
 
 -- Register script messages for binding in input.conf
 mp.register_script_message("screenshot-to-clipboard-message", take_screenshot_to_clipboard)
@@ -270,5 +347,6 @@ mp.register_script_message("copy-filename-message", copy_filename)
 mp.register_script_message("copy-full-path-message", copy_full_path)
 mp.register_script_message("copy-duration-message", copy_duration)
 mp.register_script_message("copy-info-message", copy_info)
+mp.register_script_message("insert-into-notion-message", insert_into_notion)
 
 msg.info("Clipboard tools script loaded with platform type: " .. platform)

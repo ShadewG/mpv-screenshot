@@ -50,23 +50,7 @@ local function divmod(a, b)
     return a / b, a % b
 end
 
--- Determine command for pasting clipboard to the active window
-local function get_paste_cmd()
-    if platform == WINDOWS then
-        return {"powershell", "-Command", "$wshell = New-Object -com wscript.shell; $wshell.SendKeys('^v')"}
-    elseif command_exists("xdotool") then
-        return {"xdotool", "key", "--clearmodifiers", "ctrl+v"}
-    else
-        return nil
-    end
-end
 
-local function paste_clipboard()
-    local cmd = get_paste_cmd()
-    if not cmd then
-        msg.error("No supported paste command found")
-        return false
-    end
     mp.command_native({ name = "subprocess", args = cmd })
     return true
 end
@@ -284,7 +268,7 @@ function insert_into_notion()
         file:close()
 
         if copy_image_to_clipboard(temp_screenshot) then
-            paste_clipboard()
+
         else
             mp.osd_message("Failed to copy screenshot to clipboard", 3)
         end
@@ -304,7 +288,7 @@ function insert_into_notion()
             local formatted = format_timestamp(time_pos)
             local info = string.format("Timestamp: %s\nFile: %s\nPath: %s", formatted, filename, full_path)
             if set_clipboard(info) then
-                paste_clipboard()
+
                 mp.osd_message("Inserted screenshot and info", 3)
             else
                 mp.osd_message("Failed to copy info to clipboard", 3)

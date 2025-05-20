@@ -9,6 +9,7 @@
 -- - Copy timestamp (Ctrl+t)
 -- - Copy duration (Ctrl+d)
 -- - Copy filename and timestamp (Ctrl+Shift+t)
+-- - Insert screenshot and timestamp into Notion (Ctrl+Shift+n)
 
 local msg = require 'mp.msg'
 local utils = require 'mp.utils'
@@ -50,6 +51,39 @@ local function divmod(a, b)
     return a / b, a % b
 end
 
+-- Window title used for Notion; override with NOTION_WINDOW_TITLE env variable
+local notion_window_title = os.getenv("NOTION_WINDOW_TITLE") or "Notion"
+
+-- Paste clipboard contents into the active window (optionally activating a
+-- specific window first). This sends an Enter key before Ctrl+V to ensure the
+-- paste works even if no text field is focused.
+local function paste_clipboard(window_name)
+    local cmd
+    if platform == WINDOWS then
+        local script
+        if window_name then
+            script = string.format(
+                "$ws=New-Object -ComObject WScript.Shell;" ..
+                "$ws.AppActivate('%s');Start-Sleep -Milliseconds 100;" ..
+                "$ws.SendKeys('{ENTER}');$ws.SendKeys('^v')",
+                window_name
+            )
+        else
+            script = "$ws=New-Object -ComObject WScript.Shell;" ..
+                     "$ws.SendKeys('{ENTER}');$ws.SendKeys('^v')"
+        end
+        cmd = {"powershell", "-Command", script}
+    elseif command_exists("xdotool") then
+        if window_name then
+            cmd = {"xdotool", "search", "--name", window_name,
+                    "windowactivate", "--sync", "key", "Return", "ctrl+v"}
+        else
+            cmd = {"xdotool", "key", "Return", "ctrl+v"}
+        end
+    else
+        msg.error("No supported paste command found")
+        return false
+    end
 
     mp.command_native({ name = "subprocess", args = cmd })
     return true
@@ -268,7 +302,7 @@ function insert_into_notion()
         file:close()
 
         if copy_image_to_clipboard(temp_screenshot) then
-
+            paste_clipboard(notion_window_title)
         else
             mp.osd_message("Failed to copy screenshot to clipboard", 3)
         end
@@ -288,7 +322,7 @@ function insert_into_notion()
             local formatted = format_timestamp(time_pos)
             local info = string.format("Timestamp: %s\nFile: %s\nPath: %s", formatted, filename, full_path)
             if set_clipboard(info) then
-
+                paste_clipboard(notion_window_title)
                 mp.osd_message("Inserted screenshot and info", 3)
             else
                 mp.osd_message("Failed to copy info to clipboard", 3)

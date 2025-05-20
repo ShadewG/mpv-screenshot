@@ -10,31 +10,7 @@ local tmpfile = utils.join_path(tmpdir, 'mpv_preview.png')
 local preview_enabled = false
 local overlay_id = 99
 
-local overlay_scale = 0.25
 
-local function show_frame(_, pos)
-    if not preview_enabled or not pos then return end
-
-    mp.commandv('screenshot-to-file', tmpfile, 'video')
-
-    local w = mp.get_property_number('osd-width')
-    local h = mp.get_property_number('osd-height')
-    if not (w and h) then return end
-
-    local ow = math.floor(w * overlay_scale)
-    local oh = math.floor(h * overlay_scale)
-    local ox = w - ow - 10
-    local oy = h - oh - 10
-
-    mp.command_native({
-        name = 'overlay-add',
-        id = overlay_id,
-        file = tmpfile,
-        x = ox,
-        y = oy,
-        width = ow,
-        height = oh
-    })
 end
 
 local function toggle_preview()

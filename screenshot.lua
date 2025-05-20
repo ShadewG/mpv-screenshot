@@ -29,7 +29,7 @@ end
 
 local function command_exists(cmd)
     local pipe = io.popen("type " .. cmd .. " > /dev/null 2> /dev/null; printf \"$?\"", "r")
-    exists = pipe:read() == "0"
+    local exists = pipe:read() == "0"
     pipe:close()
     return exists
 end

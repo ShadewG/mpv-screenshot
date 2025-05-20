@@ -18,3 +18,4 @@ current frame so no frames are missed.
 Copy `preview.lua` into your `~/.config/mpv/scripts/` directory and
 restart mpv. Toggle preview with the key binding above, then scrub using
 the mouse or arrow keys to see each frame appear in an overlay.
+

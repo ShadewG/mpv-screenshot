@@ -10,10 +10,7 @@ local tmpfile = utils.join_path(tmpdir, 'mpv_preview.png')
 local preview_enabled = false
 local overlay_id = 99
 
-local function show_frame(_, pos)
-    if not preview_enabled or not pos then return end
-    mp.commandv('screenshot-to-file', tmpfile, 'video')
-    mp.command_native({ name = 'overlay-add', id = overlay_id, x = 0, y = 0, file = tmpfile })
+
 end
 
 local function toggle_preview()

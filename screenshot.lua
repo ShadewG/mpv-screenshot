@@ -289,6 +289,7 @@ function copy_info()
 end
 
 -- Take a screenshot and paste it along with info into the active window (e.g. Notion)
+-- Copy screenshot and timestamp information to the clipboard
 function insert_into_notion()
     local temp_screenshot = utils.join_path(temp_dir, "mpv_screenshot_" .. os.time() .. ".png")
     mp.commandv("screenshot-to-file", temp_screenshot, "video")
@@ -301,33 +302,31 @@ function insert_into_notion()
         end
         file:close()
 
-        if copy_image_to_clipboard(temp_screenshot) then
-            paste_clipboard(notion_window_title)
-        else
-            mp.osd_message("Failed to copy screenshot to clipboard", 3)
-        end
-
+        local img_ok = copy_image_to_clipboard(temp_screenshot)
         os.remove(temp_screenshot)
 
-        mp.add_timeout(0.1, function()
-            local filename = mp.get_property("filename")
-            local path = mp.get_property("path")
-            local full_path
-            if platform == WINDOWS then
-                full_path = mp.get_property("working-directory") .. "\\" .. path
-            else
-                full_path = mp.get_property("working-directory") .. "/" .. path
-            end
-            local time_pos = mp.get_property_number("time-pos")
-            local formatted = format_timestamp(time_pos)
-            local info = string.format("Timestamp: %s\nFile: %s\nPath: %s", formatted, filename, full_path)
-            if set_clipboard(info) then
-                paste_clipboard(notion_window_title)
-                mp.osd_message("Inserted screenshot and info", 3)
-            else
-                mp.osd_message("Failed to copy info to clipboard", 3)
-            end
-        end)
+        local filename = mp.get_property("filename")
+        local path = mp.get_property("path")
+        local full_path
+        if platform == WINDOWS then
+            full_path = mp.get_property("working-directory") .. "\\" .. path
+        else
+            full_path = mp.get_property("working-directory") .. "/" .. path
+        end
+        local time_pos = mp.get_property_number("time-pos")
+        local formatted = format_timestamp(time_pos)
+        local info = string.format("Timestamp: %s\nFile: %s\nPath: %s", formatted, filename, full_path)
+        local txt_ok = set_clipboard(info)
+
+        if img_ok and txt_ok then
+            mp.osd_message("Screenshot and info copied", 3)
+        elseif img_ok then
+            mp.osd_message("Screenshot copied, failed to copy info", 3)
+        elseif txt_ok then
+            mp.osd_message("Info copied, failed to copy screenshot", 3)
+        else
+            mp.osd_message("Failed to copy screenshot and info", 3)
+        end
     end)
 end
 

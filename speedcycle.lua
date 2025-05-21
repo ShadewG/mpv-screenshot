@@ -34,5 +34,4 @@ local function speed_down()
     end
 end
 
-mp.add_key_binding('Ctrl+Shift+l', 'speed-up-cycle', speed_up)
-mp.add_key_binding('Ctrl+Shift+k', 'speed-down-cycle', speed_down)
+

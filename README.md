@@ -25,8 +25,6 @@ the mouse or arrow keys to see each frame appear in an overlay.
 
 ### Key bindings
 
-* **Ctrl+Shift+l** – Increase speed through 2x, 4x, 8x, 10x, 15x and 20x.
-* **Ctrl+Shift+k** – Step back down toward normal speed.
 
 ### Usage
 

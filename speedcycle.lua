@@ -34,5 +34,4 @@ local function speed_down()
     end
 end
 
-mp.add_key_binding('l', 'speed-up-cycle', speed_up)
-mp.add_key_binding('k', 'speed-down-cycle', speed_down)
+
